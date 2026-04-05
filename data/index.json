@@ -1,1 +1,55 @@
 
+{
+  "Data": [
+    {
+      "Periodo": "2015-2016",
+      "Inicio": "\\data\\2015-2016_Inicio.csv",
+      "Fin": "\\data\\2015-2016_Fin.csv"
+    },
+    {
+      "Periodo": "2016-2017",
+      "Inicio": "\\data\\2016-2017_Inicio.csv",
+      "Fin": "\\data\\2016-2017_Fin.csv"
+    },
+    {
+      "Periodo": "2017-2018",
+      "Inicio": "\\data\\2017-2018_Inicio.csv",
+      "Fin": "\\data\\2017-2018_Fin.csv"
+    },
+    {
+      "Periodo": "2018-2019",
+      "Inicio": "\\data\\2018-2019_Inicio.csv",
+      "Fin": "\\data\\2018-2019_Fin.csv"
+    },
+    {
+      "Periodo": "2019-2020",
+      "Inicio": "\\data\\2019-2020_Inicio.csv",
+      "Fin": "\\data\\2019-2020_Fin.csv"
+    },
+    {
+      "Periodo": "2020-2021",
+      "Inicio": "\\data\\2020-2021_Inicio.csv",
+      "Fin": "\\data\\2020-2021_Fin.csv"
+    },
+    {
+      "Periodo": "2021-2022",
+      "Inicio": "\\data\\2021-2022_Inicio.csv",
+      "Fin": "\\data\\2021-2022_Fin.csv"
+    },
+    {
+      "Periodo": "2022-2023",
+      "Inicio": "\\data\\2022-2023_Inicio.csv",
+      "Fin": "\\data\\2022-2023_Fin.csv"
+    },
+    {
+      "Periodo": "2023-2024",
+      "Inicio": "\\data\\2023-2024_Inicio.csv",
+      "Fin": "\\data\\2023-2024_Fin.csv"
+    },
+    {
+      "Periodo": "2024-2025",
+      "Inicio": "\\data\\2024-2025_Inicio.csv",
+      "Fin": "\\data\\2024-2025_Fin.csv"
+    }
+  ]
+}
