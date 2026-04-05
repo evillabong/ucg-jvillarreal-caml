@@ -1,0 +1,8 @@
+# Dependencias para usar con proveedores de LLM (todas opcionales)
+# El modo manual (--proveedor manual) no requiere ninguna de estas.
+
+# OpenAI
+openai>=1.0.0
+
+# Anthropic
+anthropic>=0.20.0
