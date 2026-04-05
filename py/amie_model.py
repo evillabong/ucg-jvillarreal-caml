@@ -21,9 +21,48 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
+import re
 from typing import Optional
+import unicodedata
 import pandas as pd
 import numpy as np
+
+
+HEADER_ALIASES = {
+    "nombreinstitucion": "nombreinstitucion",
+    "tenenciainmuebleedificio": "tenenciainmuebleedificio",
+    "tenenciainmuebleedificio": "tenenciainmuebleedificio",
+    "accesoedificio": "accesoedificio",
+    "tipoeducacion": "tipoeducacion",
+    "niveleducacion": "niveleducacion",
+    "regimenescolar": "regimenescolar",
+    "jurisdiccion": "jurisdiccion",
+    "area": "area",
+    "aniolectivo": "aniolectivo",
+}
+
+
+def normalizar_header(header: str) -> str:
+    texto = "" if header is None else str(header).strip().lower()
+    texto = unicodedata.normalize("NFKD", texto)
+    texto = "".join(char for char in texto if not unicodedata.combining(char))
+    texto = texto.replace("\ufeff", "")
+    texto = re.sub(r"[\s\-_]+", "", texto)
+    texto = re.sub(r"[^a-z0-9]", "", texto)
+    return HEADER_ALIASES.get(texto, texto)
+
+
+def homologar_headers(columns) -> list[str]:
+    usados: dict[str, int] = {}
+    normalizados: list[str] = []
+
+    for col in columns:
+        base = normalizar_header(col)
+        indice = usados.get(base, 0)
+        usados[base] = indice + 1
+        normalizados.append(base if indice == 0 else f"{base}{indice + 1}")
+
+    return normalizados
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -455,8 +494,8 @@ class InstitucionEducativa:
                 return default
 
         # Datos mínimos necesarios
-        amie      = get("AMIE")
-        est_inicio = get_num("Total Estudiantes")
+        amie      = get("amie")
+        est_inicio = get_num("totalestudiantes")
 
         if not amie or est_inicio < 5:
             return None
@@ -467,33 +506,33 @@ class InstitucionEducativa:
         nivel_des      = NivelDesercion.from_tasa(tasa)
 
         # Ratio docente / estudiante
-        docentes = get_num("Total Docentes")
+        docentes = get_num("totaldocentes")
         ratio_doc = docentes / est_inicio if est_inicio > 0 else 0.0
 
         # Ratio de género estudiantes
-        fem = get_num("Estudiantes Femenino")
+        fem = get_num("estudiantesfemenino")
         total = est_inicio if est_inicio > 0 else 1.0
         ratio_gen = fem / total
 
         return cls(
             amie             = amie,
             anio_lectivo     = anio_lectivo,
-            provincia        = get("Provincia").upper(),
+            provincia        = get("provincia").upper(),
 
-            zona             = ZonaAdministrativa.from_str(get("Zona")),
-            sostenimiento    = Sostenimiento.from_str(get("Sostenimiento")),
-            area             = Area.from_str(get("Área") or get("Area")),
-            regimen          = Regimen.from_str(get("Régimen Escolar") or get("Regimen Escolar")),
-            jurisdiccion     = Jurisdiccion.from_str(get("Jurisdicción") or get("Jurisdiccion")),
-            modalidad        = ModalidadPrimaria.from_str(get("Modalidad")),
-            jornada          = JornadaPrimaria.from_str(get("Jornada")),
-            nivel_educacion  = NivelEducacion.from_str(get("Nivel Educación") or get("Nivel Educacion")),
-            tipo_educacion   = TipoEducacion.from_str(get("Tipo Educación") or get("Tipo Educacion")),
-            acceso_edificio  = AccesoEdificio.from_str(get("Acceso Edificio")),
-            tenencia_edificio= TenenciaEdificio.from_str(get("Tenencia Inmueble Edificio")),
+            zona             = ZonaAdministrativa.from_str(get("zona")),
+            sostenimiento    = Sostenimiento.from_str(get("sostenimiento")),
+            area             = Area.from_str(get("area")),
+            regimen          = Regimen.from_str(get("regimenescolar")),
+            jurisdiccion     = Jurisdiccion.from_str(get("jurisdiccion")),
+            modalidad        = ModalidadPrimaria.from_str(get("modalidad")),
+            jornada          = JornadaPrimaria.from_str(get("jornada")),
+            nivel_educacion  = NivelEducacion.from_str(get("niveleducacion")),
+            tipo_educacion   = TipoEducacion.from_str(get("tipoeducacion")),
+            acceso_edificio  = AccesoEdificio.from_str(get("accesoedificio")),
+            tenencia_edificio= TenenciaEdificio.from_str(get("tenenciainmuebleedificio")),
 
             total_docentes        = docentes,
-            total_administrativos = get_num("Total Administrativos"),
+            total_administrativos = get_num("totaladministrativos"),
             est_inicio            = est_inicio,
             est_fin               = est_fin_val,
             ratio_doc_est         = ratio_doc,
@@ -521,7 +560,7 @@ def build_dataset(
     df_inicio: pd.DataFrame,
     df_fin: pd.DataFrame,
     anio_lectivo: str,
-    col_est: str = "Total Estudiantes",
+    col_est: str = "totalestudiantes",
 ) -> list[InstitucionEducativa]:
     """
     Construye una lista de InstitucionEducativa combinando Inicio y Fin.
@@ -538,30 +577,35 @@ def build_dataset(
     # Normalizar columnas
     df_inicio = df_inicio.copy()
     df_fin    = df_fin.copy()
-    df_inicio.columns = df_inicio.columns.str.strip()
-    df_fin.columns    = df_fin.columns.str.strip()
+    df_inicio.columns = homologar_headers(df_inicio.columns)
+    df_fin.columns    = homologar_headers(df_fin.columns)
 
     # Buscar columna de estudiantes si difiere del nombre esperado
     def encontrar_col_est(df: pd.DataFrame) -> str:
         if col_est in df.columns:
             return col_est
-        candidatos = [c for c in df.columns
-                      if "total" in c.lower() and "estud" in c.lower()]
+        candidatos = [
+            c for c in df.columns
+            if "total" in c and "estud" in c
+        ]
         return candidatos[0] if candidatos else col_est
 
     col_i = encontrar_col_est(df_inicio)
     col_f = encontrar_col_est(df_fin)
 
     # Preparar lookup AMIE → Est_Fin
-    df_fin["AMIE"] = df_fin["AMIE"].astype(str).str.strip()
-    fin_lookup = df_fin.set_index("AMIE")[col_f].to_dict()
+    if "amie" not in df_inicio.columns or "amie" not in df_fin.columns:
+        raise KeyError(f"No se encontro la columna AMIE normalizada en {anio_lectivo}")
+
+    df_fin["amie"] = df_fin["amie"].astype(str).str.strip()
+    fin_lookup = df_fin.set_index("amie")[col_f].to_dict()
 
     # Construir instancias
     instituciones: list[InstitucionEducativa] = []
     errores_total: list[str] = []
 
     for _, row in df_inicio.iterrows():
-        amie    = str(row.get("AMIE", "")).strip()
+        amie    = str(row.get("amie", "")).strip()
         est_fin = fin_lookup.get(amie, np.nan)
 
         inst = InstitucionEducativa.from_row(row, est_fin, anio_lectivo)
